@@ -24,6 +24,7 @@ file = {
 "#]
 struct INIParser;
 
+#[allow(clippy::result_large_err)]
 pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, Error<Rule>> {
     let file = match INIParser::parse(Rule::file, input) {
         Ok(mut parsed) => parsed.next().unwrap(),
@@ -52,7 +53,7 @@ pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, E
                 let name: &str = inner_rules.next().unwrap().as_str();
                 let value: &str = inner_rules.next().unwrap().as_str();
 
-                if current_section_name == "" && !properties.contains_key("") {
+                if current_section_name.is_empty() && !properties.contains_key("") {
                     properties.insert("", HashMap::default());
                 }
 
