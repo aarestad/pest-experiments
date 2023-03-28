@@ -61,7 +61,7 @@ pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
 
                 let section = properties
                     .get_mut(current_section_name)
-                    .expect("section should be present");
+                    .expect("unexpected section name");
 
                 section.insert(name, value);
             }
