@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use pest::error::Error;
 use pest::Parser;
 use pest_derive::Parser;
-use pest::error::Error;
 
 #[derive(Parser)]
 #[grammar_inline = r#"
@@ -24,10 +24,10 @@ file = {
 "#]
 struct INIParser;
 
-pub fn parse(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, Error<Rule>> {
+pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, Error<Rule>> {
     let file = match INIParser::parse(Rule::file, input) {
         Ok(mut parsed) => parsed.next().unwrap(),
-        Err(err) => return Err(err),
+        Err(e) => return Err(e),
     };
 
     let mut properties: HashMap<&str, HashMap<&str, &str>> = HashMap::default();
@@ -55,8 +55,10 @@ pub fn parse(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, Error<Ru
                 if current_section_name == "" && !properties.contains_key("") {
                     properties.insert("", HashMap::default());
                 }
-                
-                let section = properties.get_mut(current_section_name).expect("section not found");
+
+                let section = properties
+                    .get_mut(current_section_name)
+                    .expect("section not found - bug!"); // shouldn't happen
 
                 section.insert(name, value);
             }
