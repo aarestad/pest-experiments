@@ -4,6 +4,8 @@ use pest::error::{Error, ErrorVariant};
 use pest::Parser;
 use pest_derive::Parser;
 
+type ParsedINI<'a> = HashMap<&'a str, HashMap<&'a str, &'a str>>;
+
 #[derive(Parser)]
 #[grammar_inline = r#"
 WHITESPACE = _{ " " }
@@ -25,13 +27,13 @@ file = {
 struct INIParser;
 
 #[allow(clippy::result_large_err)]
-pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, Error<Rule>> {
+pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
     let file = match INIParser::parse(Rule::file, input) {
         Ok(mut parsed) => parsed.next().unwrap(),
         Err(e) => return Err(e),
     };
 
-    let mut properties: HashMap<&str, HashMap<&str, &str>> = HashMap::default();
+    let mut properties: ParsedINI = HashMap::default();
 
     let mut current_section_name = "";
 
