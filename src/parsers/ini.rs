@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use pest::error::Error;
+use pest::error::{Error, ErrorVariant};
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -38,11 +38,14 @@ pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, E
     for line in file.into_inner() {
         match line.as_rule() {
             Rule::section => {
-                let mut inner_rules = line.into_inner(); // { name }
+                let mut inner_rules = line.clone().into_inner(); // { name }
                 current_section_name = inner_rules.next().unwrap().as_str();
 
                 if properties.contains_key(current_section_name) {
-                    panic!("duplicate section name");
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError{ message: String::from("duplicate section name") },
+                        line.as_span()),
+                    );
                 }
 
                 properties.insert(current_section_name, HashMap::default());
