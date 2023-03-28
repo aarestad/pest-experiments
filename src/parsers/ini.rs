@@ -28,10 +28,7 @@ struct INIParser;
 
 #[allow(clippy::result_large_err)]
 pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
-    let file = match INIParser::parse(Rule::file, input) {
-        Ok(mut parsed) => parsed.next().unwrap(),
-        Err(e) => return Err(e),
-    };
+    let file = INIParser::parse(Rule::file, input)?.next().expect("bad parsing output");
 
     let mut properties: ParsedINI = HashMap::default();
 
@@ -41,7 +38,7 @@ pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
         match line.as_rule() {
             Rule::section => {
                 let mut inner_rules = line.clone().into_inner(); // { name }
-                current_section_name = inner_rules.next().unwrap().as_str();
+                current_section_name = inner_rules.next().expect("bad parsing output").as_str();
 
                 if properties.contains_key(current_section_name) {
                     return Err(Error::new_from_span(
@@ -55,8 +52,8 @@ pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
             Rule::property => {
                 let mut inner_rules = line.into_inner(); // { name ~ "=" ~ value }
 
-                let name: &str = inner_rules.next().unwrap().as_str();
-                let value: &str = inner_rules.next().unwrap().as_str();
+                let name: &str = inner_rules.next().expect("bad parsing output").as_str();
+                let value: &str = inner_rules.next().expect("bad parsing output").as_str();
 
                 if current_section_name.is_empty() && !properties.contains_key("") {
                     properties.insert("", HashMap::default());
