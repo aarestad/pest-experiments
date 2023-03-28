@@ -37,13 +37,14 @@ pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
     for line in file.into_inner() {
         match line.as_rule() {
             Rule::section => {
-                let mut inner_rules = line.clone().into_inner(); // { name }
-                current_section_name = inner_rules.next().expect("bad parsing output").as_str();
+                let mut inner_rules = line.into_inner(); // { name }
+                let section_name_pair = inner_rules.next().expect("bad parsing output");
+                current_section_name = section_name_pair.as_str();
 
                 if properties.contains_key(current_section_name) {
                     return Err(Error::new_from_span(
                         ErrorVariant::CustomError{ message: String::from("duplicate section name") },
-                        line.as_span()),
+                        section_name_pair.as_span()),
                     );
                 }
 
