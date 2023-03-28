@@ -28,7 +28,9 @@ struct INIParser;
 
 #[allow(clippy::result_large_err)]
 pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
-    let file = INIParser::parse(Rule::file, input)?.next().expect("bad parsing output");
+    let file = INIParser::parse(Rule::file, input)?
+        .next()
+        .expect("bad parsing output");
 
     let mut properties: ParsedINI = HashMap::default();
 
@@ -43,9 +45,11 @@ pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
 
                 if properties.contains_key(current_section_name) {
                     return Err(Error::new_from_span(
-                        ErrorVariant::CustomError{ message: String::from("duplicate section name") },
-                        section_name_pair.as_span()),
-                    );
+                        ErrorVariant::CustomError {
+                            message: String::from("duplicate section name"),
+                        },
+                        section_name_pair.as_span(),
+                    ));
                 }
 
                 properties.insert(current_section_name, HashMap::default());
