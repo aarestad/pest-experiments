@@ -59,7 +59,7 @@ pub fn parse_to_map(input: &str) -> Result<HashMap<&str, HashMap<&str, &str>>, E
 
                 let section = properties
                     .get_mut(current_section_name)
-                    .expect("section not found - bug!"); // shouldn't happen
+                    .expect("section should be present");
 
                 section.insert(name, value);
             }
