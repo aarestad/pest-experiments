@@ -11,11 +11,11 @@ subtract = { "-" }
 expression_op = { add | subtract }
 
 lt = { "<" }
-lte = { "<=" }
+le = { "<=" }
 eq = { "=" }
-gte = { ">=" }
+ge = { ">=" }
 gt = { ">" }
-boolean_expression_op = { lt | lte | eq | gte | gt }
+boolean_expression_op = { lt | le | eq | ge | gt }
 
 mul = { "*" }
 div = { "/" }
