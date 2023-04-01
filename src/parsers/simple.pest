@@ -1,6 +1,6 @@
 WHITESPACE = _{ " " | "\t" }
 
-number = @{ "0" | "-"? ~ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)}
+number = @{ "-"? ~ ("0" | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*))}
 
 boolean = @{ "true" | "false" }
 
