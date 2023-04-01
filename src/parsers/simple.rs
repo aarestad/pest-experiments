@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use pest::error::{Error, ErrorVariant};
-use pest::Parser;
 use pest::iterators::{Pair, Pairs};
+use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
@@ -30,44 +30,58 @@ pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
     Ok(program_state)
 }
 
-fn process_statement(statement: &mut Pairs<Rule>, program_state: &mut SimpleProgramState) -> Result<(), Error<Rule>> {
+fn process_statement(
+    statement: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<(), Error<Rule>> {
     for stmt_type in statement.into_iter() {
         match stmt_type.as_rule() {
             Rule::while_stmt => process_while(&mut stmt_type.into_inner(), program_state)?,
             Rule::assign => process_assign(&mut stmt_type.into_inner(), program_state)?,
-            _ => return Err(Error::new_from_span(
-                ErrorVariant::CustomError {
-                    message: format!("unexpected type: {}", stmt_type),
-                },
-                stmt_type.as_span(),
-            )),            
+            _ => {
+                return Err(Error::new_from_span(
+                    ErrorVariant::CustomError {
+                        message: format!("unexpected type: {}", stmt_type),
+                    },
+                    stmt_type.as_span(),
+                ))
+            }
         }
     }
 
     Ok(())
 }
 
-fn process_assign(assign_rule: &mut Pairs<Rule>, program_state: &mut SimpleProgramState) -> Result<(), Error<Rule>> {
+fn process_assign(
+    assign_rule: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<(), Error<Rule>> {
     // { variable ~ "=" ~ expression }
     let variable = assign_rule.next().expect("invalid parse");
 
     if variable.as_rule() != Rule::variable {
-        return Err(unexpected_type(variable))
+        return Err(unexpected_type(variable));
     }
 
     let mut expression = assign_rule.next().expect("invalid parse");
 
     let result = evaluate_expression(&mut expression, program_state)?;
     program_state.insert(variable.as_str().into(), result);
-    
+
     Ok(())
 }
 
-fn process_while(while_rule: &mut Pairs<Rule>, program_state: &mut SimpleProgramState) -> Result<(), Error<Rule>> {
+fn process_while(
+    while_rule: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<(), Error<Rule>> {
     Ok(())
 }
 
-fn evaluate_expression(expression_rule: &mut Pair<Rule>, program_state: &mut SimpleProgramState) -> Result<i64, Error<Rule>> {
+fn evaluate_expression(
+    expression_rule: &mut Pair<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<i64, Error<Rule>> {
     Ok(0)
 }
 

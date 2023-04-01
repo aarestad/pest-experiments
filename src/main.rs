@@ -1,5 +1,5 @@
-use std::fs;
 use std::error::Error;
+use std::fs;
 
 mod parsers;
 
@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     z = y / 2
     "#;
 
-    let simple_program_state =  parsers::simple::parse(simple_program)?;
+    let simple_program_state = parsers::simple::parse(simple_program)?;
     println!("{:#?}", simple_program_state);
 
     Ok(())
