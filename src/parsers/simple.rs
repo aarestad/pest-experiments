@@ -30,7 +30,6 @@ impl Val {
         }
     }
 
-    #[allow(dead_code)]
     fn as_bool(&self) -> Option<&bool> {
         match self {
             Val::Boolean(v) => Some(v),
