@@ -3,7 +3,6 @@ use std::error::Error;
 use std::fs;
 
 use log::{error, info};
-use pest::error::{ErrorVariant, LineColLocation};
 
 mod parsers;
 
@@ -17,23 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(simple_program_state) => {
             info!("simple program result state: {:#?}", simple_program_state)
         }
-        Err(e) => match e.variant {
-            ErrorVariant::CustomError { message } => {
-                let (start, end) = match e.line_col {
-                    LineColLocation::Span(start, _) => start,
-                    LineColLocation::Pos(p) => p,
-                };
-
-                error!("runtime error: {} at line {} col {}", message, start, end)
-            }
-            ErrorVariant::ParsingError {
-                positives,
-                negatives,
-            } => error!(
-                "parsing error: positives={:?}, negatives={:?}",
-                positives, negatives
-            ),
-        },
+        Err(e) => error!("parsing error: {}", e)
     }
 
     Ok(())
