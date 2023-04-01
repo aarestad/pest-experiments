@@ -11,30 +11,25 @@ subtract = { "-" }
 expression_op = { add | subtract }
 
 lt = { "<" }
-lte = { "<" }
-eq = { "<" }
-gte = { "<" }
-gt = { "<" }
+lte = { "<=" }
+eq = { "=" }
+gte = { ">=" }
+gt = { ">" }
 boolean_expression_op = { lt | lte | eq | gte | gt }
 
 mul = { "*" }
 div = { "/" }
 term_op = { mul | div }
 
-expression = { term ~ expression_op ~ expression | term}
-
-boolean_expression = { expression ~ boolean_expression_op ~ term | boolean }
+expression = { term ~ (expression_op | boolean_expression_op) ~ expression | term}
 
 term = { factor ~ term_op ~ term | factor }
 
 factor = { "(" ~ expression ~ ")" | number | boolean | variable }
 
-assign = { variable ~ "=" ~ expression }
-
-// can't use a keyword as a rule name - generates Rule::while, which flags the "while" as a keyword
-while_stmt = { "while" ~ "(" ~ boolean_expression ~ ")" ~ "{" ~ statement ~ "}" }
-
-statement = { while_stmt | assign }
+assign_stmt = { variable ~ "=" ~ expression }
+while_stmt = { "while" ~ expression ~ "{" ~ statement ~ "}" }
+statement = { while_stmt | assign_stmt }
 
 file = {
   SOI ~

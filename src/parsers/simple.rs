@@ -59,7 +59,7 @@ fn process_statement(
     for stmt_type in statement.into_iter() {
         match stmt_type.as_rule() {
             Rule::while_stmt => process_while(&mut stmt_type.into_inner(), program_state)?,
-            Rule::assign => process_assign(&mut stmt_type.into_inner(), program_state)?,
+            Rule::assign_stmt => process_assign(&mut stmt_type.into_inner(), program_state)?,
             _ => panic!("invalid parse"),
         }
     }
