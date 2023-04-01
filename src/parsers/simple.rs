@@ -4,7 +4,7 @@ use pest::error::{Error, ErrorVariant};
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use pest_derive::Parser;
-use std::ops::{Div, Mul};
+use std::ops::{Add, Div, Mul, Sub};
 
 use log::debug;
 
@@ -89,7 +89,6 @@ fn eval_while(
     while_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
-    // { "while" ~ expression ~ "{" ~ statement* ~ "}" }
     let test_expr = while_rule.next().expect("invalid parse").into_inner();
     let statements: Vec<Pair<Rule>> = while_rule.collect();
 
@@ -134,22 +133,8 @@ fn eval_expression(
     let trailing_expr = expression_rule.next().expect("invalid parse");
 
     match op.as_rule() {
-        Rule::add => Ok(Val::Integer(
-            eval_term(&mut term.into_inner(), program_state)?
-                .as_integer()
-                .expect("unexpected type of val")
-                + eval_expression(&mut trailing_expr.into_inner(), program_state)?
-                    .as_integer()
-                    .expect("unexpected type of val"),
-        )),
-        Rule::subtract => Ok(Val::Integer(
-            eval_term(&mut term.into_inner(), program_state)?
-                .as_integer()
-                .expect("unexpected types of val")
-                - eval_expression(&mut trailing_expr.into_inner(), program_state)?
-                    .as_integer()
-                    .expect("unexpected type"),
-        )),
+        Rule::add => process_binary_i64_op(i64::add, term, trailing_expr, program_state),
+        Rule::subtract => process_binary_i64_op(i64::sub, term, trailing_expr, program_state),
         Rule::gt => {
             debug!("{}", &term);
             let lhs_val = eval_term(&mut term.into_inner(), program_state)?;
@@ -186,29 +171,10 @@ fn eval_term(
     let trailing_term = term_rule.next().expect("invalid parse");
 
     match op.as_rule() {
-        Rule::mul => process_binary_int_op(i64::mul, factor, trailing_term, program_state),
-        Rule::div => process_binary_int_op(i64::div, factor, trailing_term, program_state),
+        Rule::mul => process_binary_i64_op(i64::mul, factor, trailing_term, program_state),
+        Rule::div => process_binary_i64_op(i64::div, factor, trailing_term, program_state),
         _ => panic!("invalid parse: {:?}", op.as_rule()),
     }
-}
-
-fn process_binary_int_op(
-    op: fn(i64, i64) -> i64,
-    lhs_factor: Pair<Rule>,
-    rhs_term: Pair<Rule>,
-    program_state: &mut SimpleProgramState,
-) -> Result<Val, Error<Rule>> {
-    let lhs_val = eval_factor(&mut lhs_factor.clone().into_inner(), program_state)?;
-    let lhs = lhs_val
-        .as_integer()
-        .ok_or(custom_error("unexpected type of val", lhs_factor))?;
-
-    let rhs_val = eval_term(&mut rhs_term.clone().into_inner(), program_state)?;
-    let rhs = rhs_val
-        .as_integer()
-        .ok_or(custom_error("unexpected tyoe of val", rhs_term))?;
-
-    Ok(Val::Integer(op(*lhs, *rhs)))
 }
 
 fn eval_factor(
@@ -233,6 +199,35 @@ fn eval_factor(
         }
         _ => panic!("invalid parse"),
     }
+}
+
+fn process_binary_i64_op(
+    op: fn(i64, i64) -> i64,
+    lhs_pair: Pair<Rule>,
+    rhs_pair: Pair<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<Val, Error<Rule>> {
+    let lhs_val = match lhs_pair.as_rule() {
+        Rule::factor => eval_factor(&mut lhs_pair.clone().into_inner(), program_state)?,
+        Rule::term => eval_term(&mut lhs_pair.clone().into_inner(), program_state)?,
+        _ => panic!("invalid parse"),
+    };
+
+    let lhs = lhs_val
+        .as_integer()
+        .ok_or(custom_error("unexpected type of val", lhs_pair))?;
+
+    let rhs_val = match rhs_pair.as_rule() {
+        Rule::expression => eval_expression(&mut rhs_pair.clone().into_inner(), program_state)?,
+        Rule::term => eval_term(&mut rhs_pair.clone().into_inner(), program_state)?,
+        _ => panic!("invalid parse"),
+    };
+
+    let rhs = rhs_val
+        .as_integer()
+        .ok_or(custom_error("unexpected tyoe of val", rhs_pair))?;
+
+    Ok(Val::Integer(op(*lhs, *rhs)))
 }
 
 fn custom_error(msg: &str, rule: Pair<Rule>) -> Error<Rule> {
