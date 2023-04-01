@@ -202,7 +202,7 @@ fn eval_factor(
 
             match result {
                 Some(&v) => Ok(v),
-                None => Err(custom_error("unrecognized var name", val_or_expr)),
+                None => Err(runtime_error("var name not defined", val_or_expr)),
             }
         }
         _ => panic!("invalid parse"),
@@ -239,7 +239,7 @@ fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut
 
     let lhs = lhs_val
         .as_integer()
-        .ok_or(custom_error("unexpected type of val", lhs_pair))?;
+        .ok_or(runtime_error("expected integer but got", lhs_pair))?;
 
     let rhs_val = match rhs_pair.as_rule() {
         Rule::expression => eval_expression(&mut rhs_pair.clone().into_inner(), program_state)?,
@@ -249,12 +249,12 @@ fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut
 
     let rhs = rhs_val
         .as_integer()
-        .ok_or(custom_error("unexpected tyoe of val", rhs_pair))?;
+        .ok_or(runtime_error("expected integer but got", rhs_pair))?;
 
     Ok((*lhs, *rhs))
 }
 
-fn custom_error(msg: &str, rule: Pair<Rule>) -> Error<Rule> {
+fn runtime_error(msg: &str, rule: Pair<Rule>) -> Error<Rule> {
     Error::new_from_span(
         ErrorVariant::CustomError {
             message: format!("{}: {}", msg, rule.as_str()),
