@@ -49,12 +49,12 @@ pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
     for line in file.into_inner() {
         match line.as_rule() {
             Rule::statements => eval_statements(&mut line.into_inner(), &mut program_state)?,
-            Rule::EOI => (),
-            _ => panic!("invalid parse"),
+            Rule::EOI => return Ok(program_state),
+            _ => unreachable!("invalid parse"),
         }
     }
 
-    Ok(program_state)
+    unreachable!("never hit EOI");
 }
 
 fn eval_statements(
@@ -66,7 +66,7 @@ fn eval_statements(
             match stmt_type.as_rule() {
                 Rule::while_stmt => eval_while(&mut stmt_type.into_inner(), program_state)?,
                 Rule::assign_stmt => eval_assign(&mut stmt_type.into_inner(), program_state)?,
-                _ => panic!("invalid parse: {}", stmt_type.as_str()),
+                _ => unreachable!("invalid parse: {}", stmt_type.as_str()),
             }
         }
     }
@@ -144,7 +144,7 @@ fn eval_expression(
             let op_fn = match op.as_rule() {
                 Rule::add => i64::add,
                 Rule::subtract => i64::sub,
-                _ => panic!("invalid parse: {:?}", op)
+                _ => unreachable!("invalid parse: {:?}", op)
             };
 
             return process_binary_i64_op(op_fn, term, trailing_expr, program_state)
@@ -156,12 +156,12 @@ fn eval_expression(
                 Rule::eq => i64::eq,
                 Rule::ge => i64::ge,
                 Rule::gt => i64::gt,
-                _ => panic!("invalid parse: {:?}", op)
+                _ => unreachable!("invalid parse: {:?}", op)
             };
 
             return process_binary_bool_op(op_fn, term, trailing_expr, program_state)
         },
-        _ => panic! ("invalid parse: {}", op_pair)
+        _ => unreachable! ("invalid parse: {}", op_pair)
     }
 }
 
@@ -183,7 +183,7 @@ fn eval_term(
     match op.as_rule() {
         Rule::mul => process_binary_i64_op(i64::mul, factor, trailing_term, program_state),
         Rule::div => process_binary_i64_op(i64::div, factor, trailing_term, program_state),
-        _ => panic!("invalid parse: {:?}", op.as_rule()),
+        _ => unreachable!("invalid parse: {:?}", op.as_rule()),
     }
 }
 
@@ -210,7 +210,7 @@ fn eval_factor(
                 None => Err(runtime_error("var name not defined", val_or_expr)),
             }
         }
-        _ => panic!("invalid parse"),
+        _ => unreachable!("invalid parse"),
     }
 }
 
@@ -239,7 +239,7 @@ fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut
     let lhs_val = match lhs_pair.as_rule() {
         Rule::factor => eval_factor(&mut lhs_pair.clone().into_inner(), program_state)?,
         Rule::term => eval_term(&mut lhs_pair.clone().into_inner(), program_state)?,
-        _ => panic!("invalid parse"),
+        _ => unreachable!("invalid parse"),
     };
 
     let lhs = lhs_val
@@ -249,7 +249,7 @@ fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut
     let rhs_val = match rhs_pair.as_rule() {
         Rule::expression => eval_expression(&mut rhs_pair.clone().into_inner(), program_state)?,
         Rule::term => eval_term(&mut rhs_pair.clone().into_inner(), program_state)?,
-        _ => panic!("invalid parse"),
+        _ => unreachable!("invalid parse"),
     };
 
     let rhs = rhs_val
