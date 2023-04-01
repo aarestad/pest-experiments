@@ -78,9 +78,11 @@ fn eval_assign(
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
     debug!("{}", &assign_rule.as_str());
+
     let variable = assign_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", assign_rule));
+
     let expression = assign_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", assign_rule));
@@ -99,6 +101,7 @@ fn eval_while(
     let test_expr = while_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", while_rule));
+
     let statements = while_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", while_rule));
@@ -112,6 +115,7 @@ fn eval_while(
 
     loop {
         let test_result_val = eval_expression(&mut test_expr.clone().into_inner(), program_state)?;
+
         let test_result = test_result_val
             .as_bool()
             .unwrap_or_else(|| unreachable!("invalid parse: {:?}", test_expr));
@@ -129,6 +133,7 @@ fn eval_expression(
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
     debug!("{}", &expression_rule.as_str());
+
     let term = expression_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", expression_rule));
@@ -141,6 +146,7 @@ fn eval_expression(
     };
 
     let op_category = op_pair.as_rule();
+
     let op = op_pair
         .clone()
         .into_inner()
@@ -184,6 +190,7 @@ fn eval_term(
     let factor = term_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", term_rule));
+
     let term_op = term_rule.next();
 
     let op_pair = match term_op {
@@ -196,6 +203,7 @@ fn eval_term(
         .into_inner()
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", op_pair));
+
     let trailing_term = term_rule
         .next()
         .unwrap_or_else(|| unreachable!("invalid parse: {:?}", term_rule));
