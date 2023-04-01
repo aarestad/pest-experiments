@@ -216,27 +216,8 @@ fn process_binary_i64_op(
     rhs_pair: Pair<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
-    let lhs_val = match lhs_pair.as_rule() {
-        Rule::factor => eval_factor(&mut lhs_pair.clone().into_inner(), program_state)?,
-        Rule::term => eval_term(&mut lhs_pair.clone().into_inner(), program_state)?,
-        _ => panic!("invalid parse"),
-    };
-
-    let lhs = lhs_val
-        .as_integer()
-        .ok_or(custom_error("unexpected type of val", lhs_pair))?;
-
-    let rhs_val = match rhs_pair.as_rule() {
-        Rule::expression => eval_expression(&mut rhs_pair.clone().into_inner(), program_state)?,
-        Rule::term => eval_term(&mut rhs_pair.clone().into_inner(), program_state)?,
-        _ => panic!("invalid parse"),
-    };
-
-    let rhs = rhs_val
-        .as_integer()
-        .ok_or(custom_error("unexpected tyoe of val", rhs_pair))?;
-
-    Ok(Val::Integer(op(*lhs, *rhs)))
+    let (lhs, rhs) = get_op_values(lhs_pair, rhs_pair, program_state)?;
+    Ok(Val::Integer(op(lhs, rhs)))
 }
 
 fn process_binary_bool_op(
@@ -245,6 +226,11 @@ fn process_binary_bool_op(
     rhs_pair: Pair<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
+    let (lhs, rhs) = get_op_values(lhs_pair, rhs_pair, program_state)?;
+    Ok(Val::Boolean(op(&lhs, &rhs)))
+}
+
+fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut SimpleProgramState) -> Result<(i64, i64), Error<Rule>> {
     let lhs_val = match lhs_pair.as_rule() {
         Rule::factor => eval_factor(&mut lhs_pair.clone().into_inner(), program_state)?,
         Rule::term => eval_term(&mut lhs_pair.clone().into_inner(), program_state)?,
@@ -265,7 +251,7 @@ fn process_binary_bool_op(
         .as_integer()
         .ok_or(custom_error("unexpected tyoe of val", rhs_pair))?;
 
-    Ok(Val::Boolean(op(lhs, rhs)))
+    Ok((*lhs, *rhs))
 }
 
 fn custom_error(msg: &str, rule: Pair<Rule>) -> Error<Rule> {
