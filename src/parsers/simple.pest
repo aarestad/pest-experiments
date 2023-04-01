@@ -28,11 +28,8 @@ term = { factor ~ term_op ~ term | factor }
 factor = { "(" ~ expression ~ ")" | number | boolean | variable }
 
 assign_stmt = { variable ~ "=" ~ expression }
-while_stmt = { "while" ~ expression ~ NEWLINE ~ (statement? ~ NEWLINE)* ~ "endwhile" }
+while_stmt = { "while" ~ expression ~ NEWLINE ~ statements ~ "endwhile" }
 statement = { while_stmt | assign_stmt }
+statements = { (statement? ~ NEWLINE)* }
 
-file = {
-  SOI ~
-  (statement? ~ NEWLINE)* ~
-  EOI
-}
+file = { SOI ~ statements ~ EOI }

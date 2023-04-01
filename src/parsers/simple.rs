@@ -7,7 +7,8 @@ use pest::Parser;
 use pest_derive::Parser;
 use std::ops::{Add, Div, Mul, Sub};
 
-use log::debug;
+use log::{debug, log_enabled};
+use log::Level::Debug;
 
 #[derive(Parser)]
 #[grammar = "parsers/simple.pest"]
@@ -47,7 +48,7 @@ pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
 
     for line in file.into_inner() {
         match line.as_rule() {
-            Rule::statement => eval_statement(&mut line.into_inner(), &mut program_state)?,
+            Rule::statements => eval_statements(&mut line.into_inner(), &mut program_state)?,
             Rule::EOI => (),
             _ => panic!("invalid parse"),
         }
@@ -56,15 +57,17 @@ pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
     Ok(program_state)
 }
 
-fn eval_statement(
-    statement: &mut Pairs<Rule>,
+fn eval_statements(
+    statements: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
-    for stmt_type in statement.into_iter() {
-        match stmt_type.as_rule() {
-            Rule::while_stmt => eval_while(&mut stmt_type.into_inner(), program_state)?,
-            Rule::assign_stmt => eval_assign(&mut stmt_type.into_inner(), program_state)?,
-            _ => panic!("invalid parse"),
+    for statement in statements.into_iter() {
+        for stmt_type in statement.into_inner() {
+            match stmt_type.as_rule() {
+                Rule::while_stmt => eval_while(&mut stmt_type.into_inner(), program_state)?,
+                Rule::assign_stmt => eval_assign(&mut stmt_type.into_inner(), program_state)?,
+                _ => panic!("invalid parse: {}", stmt_type.as_str()),
+            }
         }
     }
 
@@ -91,22 +94,24 @@ fn eval_while(
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
     let test_expr = while_rule.next().expect("invalid parse").into_inner();
-    let statements: Vec<Pair<Rule>> = while_rule.collect();
+    let statements = while_rule.next().expect("invalid parse").into_inner();
 
-    debug!("{}", test_expr.as_str());
 
-    for s in &statements {
-        debug!("{}", s.as_str());
+    if log_enabled!(Debug) {
+        debug!("{}", test_expr.as_str());
+        for s in statements.clone() {
+            debug!("{}", s.as_str());
+        }
     }
+
+
 
     loop {
         let test_result_val = eval_expression(&mut test_expr.clone(), program_state)?;
         let test_result = test_result_val.as_bool().expect("unexpected type of val");
 
         if *test_result {
-            for statement in &statements {
-                eval_statement(&mut statement.clone().into_inner(), program_state)?;
-            }
+            eval_statements(&mut statements.clone(), program_state)?;
         } else {
             return Ok(());
         }
