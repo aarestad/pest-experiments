@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use pest::error::Error;
+use pest::error::{Error, ErrorVariant};
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use pest_derive::Parser;
@@ -217,9 +217,23 @@ fn evaluate_factor(
             val_or_expr.as_str().parse().expect("invalid number"),
         )),
         Rule::boolean => Ok(Val::Boolean(val_or_expr.as_str() == "true")),
-        Rule::variable => Ok(*program_state
-            .get(val_or_expr.as_str())
-            .expect("unrecognized var name")),
+        Rule::variable => {
+            let result = program_state.get(val_or_expr.as_str());
+
+            match result {
+                Some(&v) => Ok(v),
+                None => Err(custom_error("unrecognized var name", val_or_expr)),
+            }
+        }
         _ => panic!("invalid parse"),
     }
+}
+
+fn custom_error(msg: &str, rule: Pair<Rule>) -> Error<Rule> {
+    Error::new_from_span(
+        ErrorVariant::CustomError {
+            message: format!("{}: {}", msg, rule.as_str()),
+        },
+        rule.as_span(),
+    )
 }
