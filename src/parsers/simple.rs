@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use pest::error::{Error, ErrorVariant};
-use pest::iterators::{Pair, Pairs};
+use pest::error::Error;
+use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -9,13 +9,35 @@ use pest_derive::Parser;
 #[grammar = "parsers/simple.pest"]
 struct SimpleParser;
 
-type SimpleProgramState = HashMap<String, i64>;
+type SimpleProgramState = HashMap<String, Val>;
 
-#[allow(clippy::result_large_err)]
+#[derive(Debug, Clone, Copy)]
+pub enum Val {
+    Integer(i64),
+    Boolean(bool),
+}
+
+impl Val {
+    fn as_integer(&self) -> Option<&i64> {
+        match self {
+            Val::Integer(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn as_bool(&self) -> Option<&bool> {
+        match self {
+            Val::Boolean(v) => Some(v),
+            _ => None,
+        }
+    }
+}
+
 pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
     let file = SimpleParser::parse(Rule::file, input)?
         .next()
-        .expect("bad parsing output");
+        .expect("invalid parse");
 
     let mut program_state: SimpleProgramState = HashMap::new();
 
@@ -23,7 +45,7 @@ pub fn parse(input: &str) -> Result<SimpleProgramState, Error<Rule>> {
         match line.as_rule() {
             Rule::statement => process_statement(&mut line.into_inner(), &mut program_state)?,
             Rule::EOI => (),
-            _ => return Err(unexpected_type(line)),
+            _ => panic!("invalid parse"),
         }
     }
 
@@ -38,14 +60,7 @@ fn process_statement(
         match stmt_type.as_rule() {
             Rule::while_stmt => process_while(&mut stmt_type.into_inner(), program_state)?,
             Rule::assign => process_assign(&mut stmt_type.into_inner(), program_state)?,
-            _ => {
-                return Err(Error::new_from_span(
-                    ErrorVariant::CustomError {
-                        message: format!("unexpected type: {}", stmt_type),
-                    },
-                    stmt_type.as_span(),
-                ))
-            }
+            _ => panic!("invalid parse"),
         }
     }
 
@@ -56,40 +71,115 @@ fn process_assign(
     assign_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
-    // { variable ~ "=" ~ expression }
     let variable = assign_rule.next().expect("invalid parse");
+    let expression = assign_rule.next().expect("invalid parse");
 
-    if variable.as_rule() != Rule::variable {
-        return Err(unexpected_type(variable));
-    }
+    let value = evaluate_expression(&mut expression.into_inner(), program_state)?;
 
-    let mut expression = assign_rule.next().expect("invalid parse");
-
-    let result = evaluate_expression(&mut expression, program_state)?;
-    program_state.insert(variable.as_str().into(), result);
+    program_state.insert(variable.as_str().into(), value);
 
     Ok(())
 }
 
 fn process_while(
-    while_rule: &mut Pairs<Rule>,
-    program_state: &mut SimpleProgramState,
+    _while_rule: &mut Pairs<Rule>,
+    _program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
     Ok(())
 }
 
 fn evaluate_expression(
-    expression_rule: &mut Pair<Rule>,
+    expression_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
-) -> Result<i64, Error<Rule>> {
-    Ok(0)
+) -> Result<Val, Error<Rule>> {
+    let term = expression_rule.next().expect("invalid parse");
+
+    let expression_op = expression_rule.next();
+
+    let op_pair = match expression_op {
+        Some(op) => op,
+        None => return evaluate_term(&mut term.into_inner(), program_state),
+    };
+
+    let op = op_pair.into_inner().next().expect("invalid parse");
+
+    let trailing_expr = expression_rule.next().expect("invalid parse");
+
+    match op.as_rule() {
+        Rule::add => Ok(Val::Integer(
+            evaluate_term(&mut term.into_inner(), program_state)?
+                .as_integer()
+                .expect("unexpected type of val")
+                + evaluate_expression(&mut trailing_expr.into_inner(), program_state)?
+                    .as_integer()
+                    .expect("unexpected type of val"),
+        )),
+        Rule::subtract => Ok(Val::Integer(
+            evaluate_term(&mut term.into_inner(), program_state)?
+                .as_integer()
+                .expect("unexpected types of val")
+                - evaluate_expression(&mut trailing_expr.into_inner(), program_state)?
+                    .as_integer()
+                    .expect("unexpected type"),
+        )),
+        _ => {
+            panic!("invalid parse: {:?}", op.as_rule())
+        },
+    }
 }
 
-fn unexpected_type(type_pair: Pair<Rule>) -> Error<Rule> {
-    Error::new_from_span(
-        ErrorVariant::CustomError {
-            message: format!("unexpected type: {}", type_pair),
-        },
-        type_pair.as_span(),
-    )
+fn evaluate_term(
+    term_rule: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<Val, Error<Rule>> {
+    let factor = term_rule.next().expect("invalid parse");
+    let term_op = term_rule.next();
+
+    let op_pair = match term_op {
+        Some(op) => op,
+        None => return evaluate_factor(&mut factor.into_inner(), program_state),
+    };
+
+    let op = op_pair.into_inner().next().expect("invalid parse");
+
+    let trailing_term = term_rule.next().expect("invalid parse");
+
+    match op.as_rule() {
+        Rule::mul => Ok(Val::Integer(
+            evaluate_factor(&mut factor.into_inner(), program_state)?
+                .as_integer()
+                .expect("unexpected type of val")
+                * evaluate_term(&mut trailing_term.into_inner(), program_state)?
+                    .as_integer()
+                    .expect("unexpect type of val"),
+        )),
+        Rule::div => Ok(Val::Integer(
+            evaluate_factor(&mut factor.into_inner(), program_state)?
+                .as_integer()
+                .expect("unexpected type of val")
+                / evaluate_term(&mut trailing_term.into_inner(), program_state)?
+                    .as_integer()
+                    .expect("unexpected type of val"),
+        )),
+        _ => panic!("invalid parse: {:?}", op.as_rule()),
+    }
+}
+
+fn evaluate_factor(
+    factor_rule: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<Val, Error<Rule>> {
+    let val_or_expr = factor_rule.next().expect("invalid parse");
+
+    match val_or_expr.as_rule() {
+        Rule::expression => evaluate_expression(&mut val_or_expr.into_inner(), program_state),
+        Rule::number => Ok(Val::Integer(
+            val_or_expr.as_str().parse().expect("invalid number"),
+        )),
+        Rule::boolean => Ok(Val::Boolean(val_or_expr.as_str() == "true")),
+        Rule::variable => Ok(*program_state
+            .get(val_or_expr.as_str())
+            .expect("unrecognized var name")),
+        _ => panic!("invalid parse"),
+    }
 }

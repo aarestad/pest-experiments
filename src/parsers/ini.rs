@@ -26,7 +26,6 @@ file = {
 "#]
 struct INIParser;
 
-#[allow(clippy::result_large_err)]
 pub fn parse_to_map(input: &str) -> Result<ParsedINI, Error<Rule>> {
     let file = INIParser::parse(Rule::file, input)?
         .next()
