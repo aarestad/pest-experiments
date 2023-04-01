@@ -1,0 +1,34 @@
+WHITESPACE = _{ " " | "\t" }
+
+number = @{ "0" | "-"? ~ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)}
+
+boolean = @{ "true" | "false" }
+
+variable = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+
+expression_op = { "+" | "-" }
+
+expression = { term ~ expression_op ~  expression | term}
+
+boolean_expression_op = { "<" | "<=" | "=" | ">=" | ">"}
+
+boolean_expression = { expression ~ boolean_expression_op ~ term | boolean }
+
+term_op = { "*" | "/" }
+
+term = { factor ~ term_op ~ term | factor }
+
+factor = { "(" ~ expression ~ ")" | number | boolean | variable }
+
+assign = { variable ~ "=" ~ expression }
+
+// can't use a keyword as a rule name - generates Rule::while, which flags the "while" as a keyword
+while_stmt = { "while" ~ "(" ~ boolean_expression ~ ")" ~ "{" ~ statement ~ "}" }
+
+statement = { while_stmt | assign }
+
+file = {
+  SOI ~
+  (statement? ~ NEWLINE)* ~
+  EOI
+}
