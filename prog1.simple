@@ -1,4 +1,8 @@
 x = 5
 y = x + 3
 z = y / 2
-while x > 0 { y = y * 2 }
+
+while x > 0
+    z = z * 2
+    x = x - 1
+endwhile

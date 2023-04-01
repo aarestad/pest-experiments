@@ -28,7 +28,7 @@ term = { factor ~ term_op ~ term | factor }
 factor = { "(" ~ expression ~ ")" | number | boolean | variable }
 
 assign_stmt = { variable ~ "=" ~ expression }
-while_stmt = { "while" ~ expression ~ "{" ~ statement ~ "}" }
+while_stmt = { "while" ~ expression ~ NEWLINE ~ (statement? ~ NEWLINE)* ~ "endwhile" }
 statement = { while_stmt | assign_stmt }
 
 file = {

@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
 use pest::error::Error;
-use pest::iterators::Pairs;
+use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use pest_derive::Parser;
+
+use log::debug;
 
 #[derive(Parser)]
 #[grammar = "parsers/simple.pest"]
@@ -71,6 +73,7 @@ fn process_assign(
     assign_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
+    debug!("{}", &assign_rule.as_str());
     let variable = assign_rule.next().expect("invalid parse");
     let expression = assign_rule.next().expect("invalid parse");
 
@@ -82,17 +85,41 @@ fn process_assign(
 }
 
 fn process_while(
-    _while_rule: &mut Pairs<Rule>,
-    _program_state: &mut SimpleProgramState,
+    while_rule: &mut Pairs<Rule>,
+    program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
-    Ok(())
+    // { "while" ~ expression ~ "{" ~ statement* ~ "}" }
+    let test_expr = while_rule.next().expect("invalid parse").into_inner();
+    let statements: Vec<Pair<Rule>> = while_rule.collect();
+
+    debug!("{}", test_expr.as_str());
+
+    for s in &statements {
+        debug!("{}", s.as_str());
+    }
+
+    loop {
+        let test_result_val = evaluate_expression(&mut test_expr.clone(), program_state)?;
+        let test_result = test_result_val.as_bool().expect("unexpected type of val");
+
+        if *test_result {
+            for statement in &statements {
+                process_statement(&mut statement.clone().into_inner(), program_state)?;
+            }
+        } else {
+            return Ok(());
+        }
+    }
 }
 
 fn evaluate_expression(
     expression_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
-    let term = expression_rule.next().expect("invalid parse");
+    debug!("{}", &expression_rule.as_str());
+    let term = expression_rule
+        .next()
+        .expect(format!("invalid parse: {:?}", expression_rule).as_str());
 
     let expression_op = expression_rule.next();
 
@@ -122,9 +149,22 @@ fn evaluate_expression(
                     .as_integer()
                     .expect("unexpected type"),
         )),
+        Rule::gt => {
+            debug!("{}", &term);
+            let lhs_val = evaluate_term(&mut term.into_inner(), program_state)?;
+            let lhs = lhs_val.as_integer().expect("unexpected types of val");
+
+            let rhs_val = evaluate_expression(&mut trailing_expr.into_inner(), program_state)?;
+            let rhs = rhs_val.as_integer().expect("unexpected type");
+
+            debug!("{}", &lhs);
+            debug!("{}", &rhs);
+
+            Ok(Val::Boolean(lhs > rhs))
+        }
         _ => {
             panic!("invalid parse: {:?}", op.as_rule())
-        },
+        }
     }
 }
 
