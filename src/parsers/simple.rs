@@ -7,8 +7,8 @@ use pest::Parser;
 use pest_derive::Parser;
 use std::ops::{Add, Div, Mul, Sub};
 
-use log::{debug, log_enabled};
 use log::Level::Debug;
+use log::{debug, log_enabled};
 
 #[derive(Parser)]
 #[grammar = "parsers/simple.pest"]
@@ -79,8 +79,12 @@ fn eval_assign(
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
     debug!("{}", &assign_rule.as_str());
-    let variable = assign_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", assign_rule));
-    let expression = assign_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", assign_rule));
+    let variable = assign_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", assign_rule));
+    let expression = assign_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", assign_rule));
 
     let value = eval_expression(&mut expression.into_inner(), program_state)?;
 
@@ -93,8 +97,12 @@ fn eval_while(
     while_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<(), Error<Rule>> {
-    let test_expr = while_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", while_rule));
-    let statements = while_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", while_rule));
+    let test_expr = while_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", while_rule));
+    let statements = while_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", while_rule));
 
     if log_enabled!(Debug) {
         debug!("{}", test_expr.as_str());
@@ -103,11 +111,11 @@ fn eval_while(
         }
     }
 
-
-
     loop {
         let test_result_val = eval_expression(&mut test_expr.clone().into_inner(), program_state)?;
-        let test_result = test_result_val.as_bool().unwrap_or_else(|| panic!("invalid parse: {:?}", test_expr));
+        let test_result = test_result_val
+            .as_bool()
+            .unwrap_or_else(|| panic!("invalid parse: {:?}", test_expr));
 
         if *test_result {
             eval_statements(&mut statements.clone().into_inner(), program_state)?;
@@ -134,20 +142,26 @@ fn eval_expression(
     };
 
     let op_category = op_pair.as_rule();
-    let op = op_pair.clone().into_inner().next().unwrap_or_else(|| panic!("invalid parse: {:?}", op_pair));
+    let op = op_pair
+        .clone()
+        .into_inner()
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", op_pair));
 
-    let trailing_expr = expression_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", expression_rule));
+    let trailing_expr = expression_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", expression_rule));
 
     match op_category {
         Rule::expression_op => {
             let op_fn = match op.as_rule() {
                 Rule::add => i64::add,
                 Rule::subtract => i64::sub,
-                _ => unreachable!("invalid parse: {:?}", op)
+                _ => unreachable!("invalid parse: {:?}", op),
             };
 
             process_binary_i64_op(op_fn, term, trailing_expr, program_state)
-        },
+        }
         Rule::boolean_expression_op => {
             let op_fn = match op.as_rule() {
                 Rule::lt => i64::lt,
@@ -155,12 +169,12 @@ fn eval_expression(
                 Rule::eq => i64::eq,
                 Rule::ge => i64::ge,
                 Rule::gt => i64::gt,
-                _ => unreachable!("invalid parse: {:?}", op)
+                _ => unreachable!("invalid parse: {:?}", op),
             };
 
             process_binary_bool_op(op_fn, term, trailing_expr, program_state)
-        },
-        _ => unreachable! ("invalid parse: {}", op_pair)
+        }
+        _ => unreachable!("invalid parse: {}", op_pair),
     }
 }
 
@@ -168,7 +182,9 @@ fn eval_term(
     term_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
-    let factor = term_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", term_rule));
+    let factor = term_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", term_rule));
     let term_op = term_rule.next();
 
     let op_pair = match term_op {
@@ -176,8 +192,14 @@ fn eval_term(
         None => return eval_factor(&mut factor.into_inner(), program_state),
     };
 
-    let op = op_pair.clone().into_inner().next().unwrap_or_else(|| panic!("invalid parse: {:?}", op_pair));
-    let trailing_term = term_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", term_rule));
+    let op = op_pair
+        .clone()
+        .into_inner()
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", op_pair));
+    let trailing_term = term_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", term_rule));
 
     match op.as_rule() {
         Rule::mul => process_binary_i64_op(i64::mul, factor, trailing_term, program_state),
@@ -190,14 +212,18 @@ fn eval_factor(
     factor_rule: &mut Pairs<Rule>,
     program_state: &mut SimpleProgramState,
 ) -> Result<Val, Error<Rule>> {
-    let val_or_expr = factor_rule.next().unwrap_or_else(|| panic!("invalid parse: {:?}", factor_rule));
+    let val_or_expr = factor_rule
+        .next()
+        .unwrap_or_else(|| panic!("invalid parse: {:?}", factor_rule));
 
     match val_or_expr.as_rule() {
         Rule::expression => eval_expression(&mut val_or_expr.into_inner(), program_state),
 
-        Rule::number => Ok(Val::Integer(
-            val_or_expr.as_str().parse().unwrap_or_else(|_| panic!("invalid parse: {:?}", val_or_expr)),
-        )),
+        Rule::number => {
+            Ok(Val::Integer(val_or_expr.as_str().parse().unwrap_or_else(
+                |_| panic!("invalid parse: {:?}", val_or_expr),
+            )))
+        }
 
         Rule::boolean => Ok(Val::Boolean(val_or_expr.as_str() == "true")),
 
@@ -234,7 +260,11 @@ fn process_binary_bool_op(
     Ok(Val::Boolean(op(&lhs, &rhs)))
 }
 
-fn get_op_values(lhs_pair: Pair<Rule>, rhs_pair: Pair<Rule>, program_state: &mut SimpleProgramState) -> Result<(i64, i64), Error<Rule>> {
+fn get_op_values(
+    lhs_pair: Pair<Rule>,
+    rhs_pair: Pair<Rule>,
+    program_state: &mut SimpleProgramState,
+) -> Result<(i64, i64), Error<Rule>> {
     let lhs_val = match lhs_pair.as_rule() {
         Rule::factor => eval_factor(&mut lhs_pair.clone().into_inner(), program_state)?,
         Rule::term => eval_term(&mut lhs_pair.clone().into_inner(), program_state)?,
